@@ -1,128 +1,174 @@
 from bs4 import BeautifulSoup
 from selenium import webdriver
-import time
-import sys
-import re
+import pandas as pd
 import math
-import numpy 
-import pandas as pd   
-import xlwt 
-import random
 import os
+import sys
+import time
 import urllib.request
-import urllib
 import win32com.client as win32
-import win32api
+
 
 print("=" *70)
 print("지마켓 베스트셀러 상품의 정보를 수집합니다.")
 print("=" *70)
+query_txt = 'Gmarket_BEST_100'
+query_url = 'http://corners.gmarket.co.kr/Bestsellers'
 
-query_txt='Gmarket Best 100'
-query_url='http://corners.gmarket.co.kr/Bestsellers'
-
-f_dir = input("1. 파일을 저장할 폴더명만 쓰세요(예:c:\\temp\\) : ")
+f_dir = input('1. 파일을 저장할 폴더명만 쓰세요(예:c:\\temp\\) : ')
 print("\n")
 
 now = time.localtime()
 s = '%04d-%02d-%02d-%02d-%02d-%02d' % (now.tm_year, now.tm_mon, now.tm_mday, now.tm_hour, now.tm_min, now.tm_sec)
 
-os.makedirs(f_dir+s+'-'+query_txt)
-os.chdir(f_dir+s+'-'+query_txt)
+img_dir = f_dir + s + '-' + query_txt + "\\images"
 
-ff_dir=f_dir+s+'-'+query_txt+'-'
-ff_name=f_dir+s+'-'+query_txt+'-'+'\\'+s+'-'+query_txt+'-'+'.txt'
-fc_name=f_dir+s+'-'+query_txt+'-'+'\\'+s+'-'+query_txt+'-'+'.csv'
-fx_name=f_dir+s+'-'+query_txt+'-'+'\\'+s+'-'+query_txt+'-'+'.xls'
+os.makedirs(img_dir)
+os.chdir(f_dir + s + '-' + query_txt)
 
-s_time = time.time( )
+f_name = f_dir + s + '-' + query_txt + '\\' + s + '-' + query_txt + '.txt'
+fc_name = f_dir + s + '-' + query_txt + '\\' + s + '-' + query_txt + '.csv'
+fx_name = f_dir + s + '-' + query_txt + '\\' + s + '-' + query_txt + '.xls'
 
-path = 'C:/tmp/chromedriver.exe'
+
+path = "C:/tmp/chromedriver.exe"
 driver = webdriver.Chrome(path)
-    
+
 driver.get(query_url)
-time.sleep(5)
-
-driver.execute_script("window.scrollBy(0,9300);")
 time.sleep(1)
-
-bmp_map = dict.fromkeys(range(0x10000, sys.maxunicode + 1), 0xfffd)
 
 html = driver.page_source
 soup = BeautifulSoup(html, 'html.parser')
 
-img_src2=[]   # 이미지 URL 저장변수
-file_no = 0
-slist=[]
+def scroll_down(driver):
+    driver.execute_script("window.scrollBy(0,9300);")
+    time.sleep(1)
 
-search = soup.select('#gBestWrap-div > #best-list-div')
-slist = search[0].find_all('li')
 
-ranking = []
+scroll_down(driver)
+
+rank = []
 explain = []
 o_price = []
 s_price = []
 discount = []
 
-for li in slist:
-    try :
-        photo = li.find('img')['src']
-    except AttributeError :
-        continue
-    file_no += 1
+search = soup.select('div.best-list')
+slist = search[1].select('ul > li')
 
-    urllib.request.urlretrieve(photo,str(file_no)+'.jpg')
+img_file_no = 0
+
+for li in slist:
+    os.chdir(img_dir)
+    try:
+        photo = li.find('div', 'thumb').find('img')['src']
+    except AttributeError:
+        continue
+    img_file_no += 1
+    urllib.request.urlretrieve(photo, str(img_file_no) + '.jpg')
     time.sleep(1)
 
-for li in slist:
-    f=open(ff_name, 'a', encoding='UTF-8-sig')
+count = 1
+for li in range(101):
+
+    f = open(f_name, 'a', encoding='UTF-8')
     f.write("-"*30 + "\n")
+
+    print("\n")
+    print("-"*30)
     
-    print("-"*70)
-    ranking1 = li.find('p').get_text()
-    f.write("1. 판매순위 : "+ranking+"\n")
-    print("1. 판매순위 : "+ranking+"\n")
-    ranking.append(ranking1)
+    sid = '#no' + str(count)
+    count+=1
     
-    expalain1 = li.find('a', class_='itemname').get_text()
-    f.write("2. 제품소개 : "+ explain1 + "\n")
-    print("2. 제품소개 : "+ explain1 + "\n")
-    expalin.append(explain1)
-    
-    o_price1 = li.find('div', class_='o-price').get_text()
-    f.write("3. 원래가격 : " + o_price1 + "\n")
-    print("3. 원래가격 : " + o_price1 + "\n")
-    o_price.append(o_price1)
-    
-    s_price1 = li.find('div', class_='s-price').get_text()
-    f.write("4. 판매가격 : " + s-price1 + "\n")
-    print("4. 판매가격 : " + s-price1 + "\n")
-    s_price.append(s_price1)
-    
-    discount1 = li.find('span', class_='sale').get_text()
-    f.write("5. 할인율 : " + discount1 + "\n")
-    print("5. 할인율 : " + discount1 + "\n")
-    discount.append(discount1)
-    
+    try:
+        rank1 = li.select(sid)[0].get_text()
+    except AttributeError:
+        rank1 = ''
+        print('1.판매순위 : ', rank1.replace("\n", ""))
+    else:
+        print("1.판매순위 : ", rank1)
+
+        f.write('1.판매순위 : ' + rank1 + "\n")
+
+    try:
+        explain1 = li.select('a.itemname')[0].get_text()
+    except AttributeError:
+        explain1 = ''
+        print(explain1)
+        f.write('2.제품소개 : ' + explain1 + "\n")
+    else:
+        print("2.제품소개 : ", explain1.replace("\n", ""))
+        f.write('2.제품소개 : ' + explain1 + "\n")
+
+        o_price1 = li.find('div', class_='item_price').find('div', 'o-price').get_text()
+        print("3.원래가격 : ", o_price1.replace("\n", ""))
+        f.write('3.원래가격 : ' + o_price1 + "\n")
+
+        s_price1 = li.find('div', class_='item_price').find('div', 's-price').find('strong').get_text()
+        print("4.판매가격 : ", s_price1.replace("\n", ""))
+        f.write('4.판매가격 : ' + s_price1 + "\n")
+
+        try:
+            discount1 = li.find('div', class_='item_price').find('div', 's-price').find('em').get_text()
+        except AttributeError:
+            discount1 = '0%'
+        print("5.할인율 : ", discount1.replace("\n", ""))
+        f.write('5.할인율 : ' + discount1 + "\n")
+
+        rank.append(rank1)
+        explain.append(explain1.replace("\n", ""))
+        o_price.append(o_price1.replace("\n", ""))
+        s_price.append(s_price1.replace("\n", ""))
+        discount.append(discount1.replace("\n", ""))
+        
 
 
+        time.sleep(1)
+        
 result = pd.DataFrame()
-result['판매순위']=ranking
-result['제품소개']=pd.Series(explain)
-result['원래가격']=pd.Series(o_price)
-result['판매가격']=pd.Series(s_price)
-result['할인율']=pd.Series(discount)
+result['판매순위'] = rank
+result['제품소개'] = pd.Series(explain)
+result['원래가격'] = pd.Series(o_price)
+result['판매가격'] = pd.Series(s_price)
+result['할인율'] = pd.Series(discount)
+
+result.to_csv(fc_name, encoding="utf-8-sig", index=True)
+resultr.to_excel(fx_name, index=True)
+
+orig_stdout = sys.stdout
+f = open(f_name, 'a', encoding='UTF-8')
+sys.stdout = f
+sys.stdout = orig_stdout
+f.close()
+
+print("\n")
+print("1.파일 저장 완료: txt 파일명 : %s " % f_name)
+print("2.파일 저장 완료: csv 파일명 : %s " % fc_name)
+print("3.파일 저장 완료: xls 파일명 : %s " % fx_name)
 
 excel = win32.gencache.EnsureDispatch('Excel.Application')
 wb = excel.Workbooks.Open(fx_name)
 sheet = wb.ActiveSheet
 sheet.Columns(3).ColumnWidth = 30
-row_cnt = cnt+1
-sheet.Rows("2:%s" %row_cnt).RowHeight = 120
+row_cnt = cnt + 1
+sheet.Rows("2:%s" % row_cnt).RowHeight = 120
 
 ws = wb.Sheets("Sheet1")
-col_name2=[]
-file_name2=[]
+col_name = []
+file_name = []
 
-result.to_csv(fc_name,encoding="utf-8-sig",index=True)
-result.to_excel(fx_name ,index=True)
+for a in range(2, cnt + 2):
+    col_name1 = 'C' + str(a)
+    col_name.append(col_name1)
+
+for b in range(1, cnt + 1):
+    file_name1 = img_dir + '\\' + str(b) + '.jpg'
+    file_name.append(file_name1)
+
+for i in range(0, cnt):
+    rng = ws.Range(col_name2[i])
+    image = ws.Shapes.AddPicture(file_name2[i], False, True, rng.Left, rng.Top, 130, 100)
+    excel.Visible = True
+    excel.ActiveWorkbook.Save()
+
+driver.close()

@@ -12,7 +12,7 @@ import win32com.client as win32
 print("=" *70)
 print("지마켓 베스트셀러 상품의 정보를 수집합니다.")
 print("=" *70)
-query_txt = 'Gmarket_BEST_100'
+query_txt = 'Gmarket_BEST_200'
 query_url = 'http://corners.gmarket.co.kr/Bestsellers'
 
 f_dir = input('1. 파일을 저장할 폴더명만 쓰세요(예:c:\\temp\\) : ')
